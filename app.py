@@ -254,8 +254,9 @@ if uais:
     tab_liste, tab_carte = st.tabs(["Liste", "Carte"])
 
     with tab_liste:
-        display = result[[COL_NOM, COL_COMMUNE, COL_DEP, COL_ACAD]].copy()
-        display.columns = ["Établissement", "Commune", "Département", "Académie"]
+        display = result[[COL_UAI, COL_NOM, COL_COMMUNE, COL_DEP, COL_ACAD]].copy()
+        display = display.merge(df_geo[["code UAI", "statut"]], left_on=COL_UAI, right_on="code UAI", how="left").drop(columns=[COL_UAI, "code UAI"])
+        display.columns = ["Établissement", "Commune", "Département", "Académie", "Statut"]
 
         selection = st.dataframe(
             display,
