@@ -250,9 +250,9 @@ if uais:
         )
 
     with tab_carte:
-        geo_result = result.merge(df_geo, left_on=COL_UAI, right_on="code UAI", how="inner")
+        geo_result = result.merge(df_geo, left_on=COL_UAI, right_on="code UAI", how="inner").drop_duplicates(COL_UAI)
         n_sans_coords = len(result) - len(geo_result)
-        if n_sans_coords:
+        if n_sans_coords > 0:
             st.caption(f"{n_sans_coords} établissement(s) sans coordonnées géographiques ne figurent pas sur la carte.")
         if geo_result.empty:
             st.warning("Aucune coordonnée disponible pour ces établissements.")
