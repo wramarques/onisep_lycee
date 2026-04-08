@@ -344,15 +344,17 @@ if uais:
         display = result[[COL_UAI, COL_NOM, COL_COMMUNE, COL_DEP, COL_ACAD]].copy()
         display = display.merge(df_geo[["code UAI", "statut"]], left_on=COL_UAI, right_on="code UAI", how="left").drop(columns=[COL_UAI, "code UAI"])
         display.columns = ["Établissement", "Commune", "Département", "Académie", "Statut"]
-        st.dataframe(display, use_container_width=True)
 
-        sel_nom = st.selectbox(
-            "🔍 Voir le détail d'un établissement",
-            options=[""] + result[COL_NOM].tolist(),
-            index=0,
+        st.caption("Cliquez sur une ligne 🔍 pour voir le détail.")
+        selection = st.dataframe(
+            display,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode="single-row",
         )
-        if sel_nom:
-            row = result[result[COL_NOM] == sel_nom].iloc[0]
+        selected_rows = selection.selection.rows
+        if selected_rows:
+            row = result.iloc[selected_rows[0]]
             show_detail(row, row[COL_UAI])
 
     with tab_carte:
