@@ -18,9 +18,6 @@ venv/
 # Streamlit
 .streamlit/secrets.toml
 
-# Données (fichiers sources volumineux)
-data/source/
-
 # IDE
 .vscode/
 .idea/
