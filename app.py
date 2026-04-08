@@ -162,10 +162,10 @@ etab_idx = etab.set_index(COL_UAI)
 # Sidebar — filtres
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.header("Filtres géographiques")
+    st.markdown("#### 🗺️ Localisation")
 
     acads = sorted(acad_dep.keys())
-    sel_acads = st.multiselect("Académie(s)", acads)
+    sel_acads = st.multiselect("Académie", acads, placeholder="Toutes")
 
     if sel_acads:
         deps_disponibles = sorted(
@@ -175,9 +175,8 @@ with st.sidebar:
         deps_disponibles = sorted(
             {dep for deps in acad_dep.values() for dep in deps}
         )
-    sel_deps = st.multiselect("Département(s)", deps_disponibles)
+    sel_deps = st.multiselect("Département", deps_disponibles, placeholder="Tous")
 
-    # Communes en cascade depuis académie + département
     if sel_deps:
         communes_disponibles = sorted(
             etab_idx[etab_idx[COL_DEP].isin(sel_deps)][COL_COMMUNE].dropna().unique()
@@ -188,11 +187,10 @@ with st.sidebar:
         )
     else:
         communes_disponibles = sorted(etab_idx[COL_COMMUNE].dropna().unique())
-    sel_communes = st.multiselect("Commune(s)", communes_disponibles)
+    sel_communes = st.multiselect("Commune", communes_disponibles, placeholder="Toutes")
 
-    st.divider()
-    st.header("Établissement")
-    search_nom = st.text_input("Nom de l'établissement", placeholder="ex : Lycée Victor Hugo")
+    st.markdown("#### 🏫 Établissement")
+    search_nom = st.text_input("Nom", placeholder="ex : Lycée Victor Hugo", label_visibility="collapsed")
 
     # --- UAIs après filtres géo + nom ---
     uais_base = uais_communs.copy()
@@ -205,8 +203,7 @@ with st.sidebar:
     if search_nom:
         uais_base &= set(etab_idx[etab_idx[COL_NOM].str.contains(search_nom, case=False, na=False)].index)
 
-    st.divider()
-    st.header("Filtres pédagogiques")
+    st.markdown("#### 🎓 Enseignements")
 
     prev_opts = st.session_state.get("sel_opts", [])
     prev_spes = st.session_state.get("sel_spes", [])
@@ -223,8 +220,8 @@ with st.sidebar:
     else:
         spes_available = sorted({s for u in uais_base for s in spe_by_uai.get(u, set())})
 
-    sel_opts = st.multiselect("Options de 2nde", opts_available, key="sel_opts")
-    sel_spes = st.multiselect("Spécialités de 1ère", spes_available, key="sel_spes")
+    sel_opts = st.multiselect("📚 Options de 2nde", opts_available, key="sel_opts")
+    sel_spes = st.multiselect("🔬 Spécialités de 1ère", spes_available, key="sel_spes")
 
 # ---------------------------------------------------------------------------
 # Filtrage final
