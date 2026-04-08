@@ -177,6 +177,19 @@ with st.sidebar:
         )
     sel_deps = st.multiselect("Département(s)", deps_disponibles)
 
+    # Communes en cascade depuis académie + département
+    if sel_deps:
+        communes_disponibles = sorted(
+            etab_idx[etab_idx[COL_DEP].isin(sel_deps)][COL_COMMUNE].dropna().unique()
+        )
+    elif sel_acads:
+        communes_disponibles = sorted(
+            etab_idx[etab_idx[COL_ACAD].isin(sel_acads)][COL_COMMUNE].dropna().unique()
+        )
+    else:
+        communes_disponibles = sorted(etab_idx[COL_COMMUNE].dropna().unique())
+    sel_communes = st.multiselect("Commune(s)", communes_disponibles)
+
     st.divider()
     st.header("Établissement")
     search_nom = st.text_input("Nom de l'établissement", placeholder="ex : Lycée Victor Hugo")
@@ -187,6 +200,8 @@ with st.sidebar:
         uais_base &= set(etab_idx[etab_idx[COL_ACAD].isin(sel_acads)].index)
     if sel_deps:
         uais_base &= set(etab_idx[etab_idx[COL_DEP].isin(sel_deps)].index)
+    if sel_communes:
+        uais_base &= set(etab_idx[etab_idx[COL_COMMUNE].isin(sel_communes)].index)
     if search_nom:
         uais_base &= set(etab_idx[etab_idx[COL_NOM].str.contains(search_nom, case=False, na=False)].index)
 
