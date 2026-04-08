@@ -255,10 +255,7 @@ if uais:
     with tab_liste:
         display = result[[COL_UAI, COL_NOM, COL_COMMUNE, COL_DEP, COL_ACAD]].copy()
         display = display.merge(df_geo[["code UAI", "statut"]], left_on=COL_UAI, right_on="code UAI", how="left").drop(columns=[COL_UAI, "code UAI"])
-        # Fusionner département et académie sous le nom
-        display["Établissement"] = display[COL_NOM] + "\n" + display[COL_DEP] + " — " + display[COL_ACAD]
-        display = display[["Établissement", COL_COMMUNE, "statut"]].copy()
-        display.columns = ["Établissement", "Commune", "Statut"]
+        display.columns = ["Nom", "Commune", "Dép.", "Académie", "Statut"]
 
         col_list, col_detail = st.columns([1, 1])
 
