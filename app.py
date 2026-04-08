@@ -152,95 +152,7 @@ SECTIONS = {
 st.set_page_config(page_title="Recherche lycées", layout="wide")
 
 
-@st.dialog("Détail de l'établissement", width="large")
-def show_detail(row, uai):
-    geo_row = df_geo[df_geo["code UAI"] == uai]
 
-    st.subheader(row[COL_NOM])
-
-    meta = []
-    if not geo_row.empty:
-        g = geo_row.iloc[0]
-        if pd.notna(g["statut"]):
-            meta.append(f"**Statut :** {g['statut']}")
-        if pd.notna(g["telephone"]) and g["telephone"]:
-            meta.append(f"**Tél :** {g['telephone']}")
-
-    adresse = ", ".join(filter(pd.notna, [
-        row.get("Adresse lieu de cours"),
-        row.get("Code postal lieu de cours"),
-        row[COL_COMMUNE],
-    ]))
-    st.write(f"{adresse} — {row[COL_DEP]} — Académie de {row[COL_ACAD]}")
-    if meta:
-        st.markdown(" &nbsp;|&nbsp; ".join(meta))
-    if pd.notna(row[COL_LIEN]):
-        st.markdown(f"[Voir la fiche ONISEP]({row[COL_LIEN]})")
-
-    # Effectifs
-    eff_etab = df_effectifs[df_effectifs["UAI"] == uai].sort_values("annee")
-    if not eff_etab.empty:
-        st.write("")
-        st.markdown("**Effectifs**")
-        derniere = eff_etab.iloc[-1]
-        annee = int(derniere["annee"])
-        c1, c2, c3, c4 = st.columns(4)
-        def mv(val):
-            return int(val) if pd.notna(val) else "—"
-        c1.metric("Total élèves", mv(derniere["total"]), help=f"Rentrée {annee}")
-        c2.metric("2nde GT",     mv(derniere[SECTIONS["2nde"]["GT"]["total"]]))
-        c3.metric("1ère G",      mv(derniere[SECTIONS["1ère"]["G"]["total"]]))
-        c4.metric("Terminale G", mv(derniere[SECTIONS["Terminale"]["G"]["total"]]))
-
-        if len(eff_etab) > 1:
-            with st.expander("Évolution des effectifs par section"):
-                tabs = st.tabs(list(SECTIONS.keys()))
-                for tab, (niveau, sections) in zip(tabs, SECTIONS.items()):
-                    with tab:
-                        actives = {
-                            sec: info for sec, info in sections.items()
-                            if info["total"] in eff_etab.columns
-                            and eff_etab[info["total"]].fillna(0).gt(0).any()
-                        }
-                        if not actives:
-                            st.caption("Aucun effectif pour ce niveau.")
-                            continue
-                        totaux = eff_etab.set_index("annee")[
-                            [info["total"] for info in actives.values()]
-                        ].copy()
-                        totaux.index = totaux.index.astype(int).astype(str)
-                        totaux.columns = list(actives.keys())
-                        st.line_chart(totaux)
-                        for sec, info in actives.items():
-                            detail_cols = [c for c in info["detail"]
-                                           if c in eff_etab.columns
-                                           and eff_etab[c].fillna(0).gt(0).any()]
-                            if detail_cols:
-                                with st.expander(f"Détail {sec}"):
-                                    detail = eff_etab.set_index("annee")[detail_cols].copy()
-                                    detail.index = detail.index.astype(int).astype(str)
-                                    detail.columns = [
-                                        c.replace(f"{niveau}s {sec} ", "").replace(f"1ères {sec} ", "").replace(f"Terminales {sec} ", "")
-                                        for c in detail_cols
-                                    ]
-                                    st.line_chart(detail)
-
-    st.write("")
-    col_opt, col_spe = st.columns(2)
-    with col_opt:
-        st.markdown("**Options de 2nde**")
-        for o in sorted(opt_by_uai.get(uai, set())):
-            if o in st.session_state.get("sel_opts", []):
-                st.markdown(f"- **:blue[{o}]**")
-            else:
-                st.write(f"- {o}")
-    with col_spe:
-        st.markdown("**Spécialités de 1ère**")
-        for s in sorted(spe_by_uai.get(uai, set())):
-            if s in st.session_state.get("sel_spes", []):
-                st.markdown(f"- **:blue[{s}]**")
-            else:
-                st.write(f"- {s}")
 st.title("Recherche d'établissements")
 st.caption("Source : ONISEP — Idéo enseignements spécialité 1ère & options 2nde GT")
 
@@ -345,17 +257,110 @@ if uais:
         display = display.merge(df_geo[["code UAI", "statut"]], left_on=COL_UAI, right_on="code UAI", how="left").drop(columns=[COL_UAI, "code UAI"])
         display.columns = ["Établissement", "Commune", "Département", "Académie", "Statut"]
 
-        st.caption("Cliquez sur une ligne 🔍 pour voir le détail.")
-        selection = st.dataframe(
-            display,
-            use_container_width=True,
-            on_select="rerun",
-            selection_mode="single-row",
-        )
-        selected_rows = selection.selection.rows
-        if selected_rows:
-            row = result.iloc[selected_rows[0]]
-            show_detail(row, row[COL_UAI])
+        col_list, col_detail = st.columns([2, 3])
+
+        with col_list:
+            st.caption("Cliquez sur une ligne pour voir le détail.")
+            selection = st.dataframe(
+                display,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                height=600,
+            )
+
+        with col_detail:
+            selected_rows = selection.selection.rows
+            if selected_rows:
+                row = result.iloc[selected_rows[0]]
+                uai = row[COL_UAI]
+                geo_row = df_geo[df_geo["code UAI"] == uai]
+
+                with st.container(border=True):
+                    st.subheader(row[COL_NOM])
+                    meta = []
+                    if not geo_row.empty:
+                        g = geo_row.iloc[0]
+                        if pd.notna(g["statut"]):
+                            meta.append(f"**Statut :** {g['statut']}")
+                        if pd.notna(g["telephone"]) and g["telephone"]:
+                            meta.append(f"**Tél :** {g['telephone']}")
+                    adresse = ", ".join(filter(pd.notna, [
+                        row.get("Adresse lieu de cours"),
+                        row.get("Code postal lieu de cours"),
+                        row[COL_COMMUNE],
+                    ]))
+                    st.write(f"{adresse} — {row[COL_DEP]} — Académie de {row[COL_ACAD]}")
+                    if meta:
+                        st.markdown(" &nbsp;|&nbsp; ".join(meta))
+                    if pd.notna(row[COL_LIEN]):
+                        st.markdown(f"[Voir la fiche ONISEP]({row[COL_LIEN]})")
+
+                    eff_etab = df_effectifs[df_effectifs["UAI"] == uai].sort_values("annee")
+                    if not eff_etab.empty:
+                        st.write("")
+                        st.markdown("**Effectifs**")
+                        derniere = eff_etab.iloc[-1]
+                        annee = int(derniere["annee"])
+                        c1, c2, c3, c4 = st.columns(4)
+                        def mv(val):
+                            return int(val) if pd.notna(val) else "—"
+                        c1.metric("Total", mv(derniere["total"]), help=f"Rentrée {annee}")
+                        c2.metric("2nde GT", mv(derniere[SECTIONS["2nde"]["GT"]["total"]]))
+                        c3.metric("1ère G",  mv(derniere[SECTIONS["1ère"]["G"]["total"]]))
+                        c4.metric("Term. G", mv(derniere[SECTIONS["Terminale"]["G"]["total"]]))
+
+                        if len(eff_etab) > 1:
+                            with st.expander("Évolution des effectifs"):
+                                tabs_eff = st.tabs(list(SECTIONS.keys()))
+                                for tab_eff, (niveau, sections) in zip(tabs_eff, SECTIONS.items()):
+                                    with tab_eff:
+                                        actives = {
+                                            sec: info for sec, info in sections.items()
+                                            if info["total"] in eff_etab.columns
+                                            and eff_etab[info["total"]].fillna(0).gt(0).any()
+                                        }
+                                        if not actives:
+                                            st.caption("Aucun effectif.")
+                                            continue
+                                        totaux = eff_etab.set_index("annee")[
+                                            [info["total"] for info in actives.values()]
+                                        ].copy()
+                                        totaux.index = totaux.index.astype(int).astype(str)
+                                        totaux.columns = list(actives.keys())
+                                        st.line_chart(totaux)
+                                        for sec, info in actives.items():
+                                            detail_cols = [c for c in info["detail"]
+                                                           if c in eff_etab.columns
+                                                           and eff_etab[c].fillna(0).gt(0).any()]
+                                            if detail_cols:
+                                                with st.expander(f"Détail {sec}"):
+                                                    detail = eff_etab.set_index("annee")[detail_cols].copy()
+                                                    detail.index = detail.index.astype(int).astype(str)
+                                                    detail.columns = [
+                                                        c.replace(f"{niveau}s {sec} ", "").replace(f"1ères {sec} ", "").replace(f"Terminales {sec} ", "")
+                                                        for c in detail_cols
+                                                    ]
+                                                    st.line_chart(detail)
+
+                    st.write("")
+                    col_opt, col_spe = st.columns(2)
+                    with col_opt:
+                        st.markdown("**Options de 2nde**")
+                        for o in sorted(opt_by_uai.get(uai, set())):
+                            if o in sel_opts:
+                                st.markdown(f"- **:blue[{o}]**")
+                            else:
+                                st.write(f"- {o}")
+                    with col_spe:
+                        st.markdown("**Spécialités de 1ère**")
+                        for s in sorted(spe_by_uai.get(uai, set())):
+                            if s in sel_spes:
+                                st.markdown(f"- **:blue[{s}]**")
+                            else:
+                                st.write(f"- {s}")
+            else:
+                st.info("Sélectionnez un établissement dans la liste pour voir son détail.")
 
     with tab_carte:
         geo_result = result.merge(df_geo, left_on=COL_UAI, right_on="code UAI", how="inner").drop_duplicates(COL_UAI)
