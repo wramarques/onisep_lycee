@@ -385,3 +385,13 @@ else:
         st.info("Aucun établissement ne correspond à cette combinaison.")
     else:
         st.info("Utilisez les filtres dans la barre latérale pour lancer une recherche.")
+
+st.divider()
+st.caption(
+    "Réalisé par [William Ramarques](https://www.linkedin.com/in/william-ramarques-1a017525/) &nbsp;·&nbsp; "
+    "Sources : "
+    "[Enseignements optionnels 2nde](https://opendata.onisep.fr/data/60113c3d5fee0/2-ideo-enseignements-optionnels-de-seconde-generale-et-technologique.htm?tab=table_696e194665dfb) · "
+    "[Spécialités 1ère](https://opendata.onisep.fr/data/60113f395cce6/2-ideo-enseignements-de-specialite-de-premiere-generale.htm?tab=table_696e14792e7ed) · "
+    "[Structures secondaires ONISEP](https://opendata.onisep.fr) · "
+    "[Effectifs lycées GT](https://www.data.gouv.fr/datasets/effectifs-deleves-par-niveau-sexe-langues-vivantes-1-et-2-les-plus-frequentes-par-lycee-denseignement-general-et-technologique-date-dobservation-au-debut-du-mois-doctobre-chaque-annee)"
+)

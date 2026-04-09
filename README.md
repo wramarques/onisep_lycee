@@ -25,3 +25,7 @@ Données ouvertes ONISEP — Idéo :
 - [Lycées — données générales](https://www.data.gouv.fr/datasets/lycees-donnees-generales) (coordonnées géographiques, statut, contact)
 
 Les fichiers CSV sont à placer dans `data/source/`.
+
+## Auteur
+
+[William Ramarques](https://www.linkedin.com/in/william-ramarques-1a017525/)
