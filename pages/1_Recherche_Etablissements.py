@@ -161,77 +161,91 @@ etab_idx = etab.set_index(COL_UAI)
 # Sidebar — filtres
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("#### 🗺️ Localisation")
 
-    acads = sorted(acad_dep.keys())
-    sel_acads = st.multiselect("Académie", acads, placeholder="Toutes")
-
-    if sel_acads:
-        deps_disponibles = sorted(
-            {dep for a in sel_acads for dep in acad_dep.get(a, [])}
-        )
-    else:
-        deps_disponibles = sorted(
-            {dep for deps in acad_dep.values() for dep in deps}
-        )
-    sel_deps = st.multiselect("Département", deps_disponibles, placeholder="Tous")
-
-    if sel_deps:
-        communes_disponibles = sorted(
-            etab_idx[etab_idx[COL_DEP].isin(sel_deps)][COL_COMMUNE].dropna().unique()
-        )
-    elif sel_acads:
-        communes_disponibles = sorted(
-            etab_idx[etab_idx[COL_ACAD].isin(sel_acads)][COL_COMMUNE].dropna().unique()
-        )
-    else:
-        communes_disponibles = sorted(etab_idx[COL_COMMUNE].dropna().unique())
-    sel_communes = st.multiselect("Commune", communes_disponibles, placeholder="Toutes")
-
-    st.markdown("#### 🏫 Établissement")
-    search_nom = st.text_input("Nom", placeholder="ex : Lycée Victor Hugo", label_visibility="collapsed")
-
-    # --- UAIs après filtres géo + nom ---
-    uais_base = uais_communs.copy()
-    if sel_acads:
-        uais_base &= set(etab_idx[etab_idx[COL_ACAD].isin(sel_acads)].index)
-    if sel_deps:
-        uais_base &= set(etab_idx[etab_idx[COL_DEP].isin(sel_deps)].index)
-    if sel_communes:
-        uais_base &= set(etab_idx[etab_idx[COL_COMMUNE].isin(sel_communes)].index)
-    if search_nom:
-        uais_base &= set(etab_idx[etab_idx[COL_NOM].str.contains(search_nom, case=False, na=False)].index)
-
+    # ------------------------------------------------------------------ #
+    # 1. Enseignements — filtre principal (logique inversée)              #
+    # ------------------------------------------------------------------ #
     st.markdown("#### 🎓 Enseignements")
 
     prev_opts = st.session_state.get("sel_opts", [])
     prev_spes = st.session_state.get("sel_spes", [])
 
     if prev_spes:
-        uais_with_spes = {u for u in uais_base if set(prev_spes) <= spe_by_uai.get(u, set())}
+        uais_with_spes = {u for u in uais_communs if set(prev_spes) <= spe_by_uai.get(u, set())}
         opts_available = sorted({o for u in uais_with_spes for o in opt_by_uai.get(u, set())})
     else:
-        opts_available = sorted({o for u in uais_base for o in opt_by_uai.get(u, set())})
+        opts_available = sorted({o for u in uais_communs for o in opt_by_uai.get(u, set())})
 
     if prev_opts:
-        uais_with_opts = {u for u in uais_base if set(prev_opts) <= opt_by_uai.get(u, set())}
+        uais_with_opts = {u for u in uais_communs if set(prev_opts) <= opt_by_uai.get(u, set())}
         spes_available = sorted({s for u in uais_with_opts for s in spe_by_uai.get(u, set())})
     else:
-        spes_available = sorted({s for u in uais_base for s in spe_by_uai.get(u, set())})
+        spes_available = sorted({s for u in uais_communs for s in spe_by_uai.get(u, set())})
 
     sel_opts = st.multiselect("📚 Options de 2nde", opts_available, key="sel_opts")
     sel_spes = st.multiselect("🔬 Spécialités de 1ère", spes_available, key="sel_spes")
+    st.caption("Les lycées retenus proposent **toutes** les options et spécialités sélectionnées.")
+
+    # UAIs compatibles avec les enseignements sélectionnés
+    uais_ens = uais_communs.copy()
+    if sel_spes:
+        uais_ens = {u for u in uais_ens if set(sel_spes) <= spe_by_uai.get(u, set())}
+    if sel_opts:
+        uais_ens = {u for u in uais_ens if set(sel_opts) <= opt_by_uai.get(u, set())}
+
+    # ------------------------------------------------------------------ #
+    # 2. Localisation — restreinte aux établissements compatibles         #
+    # ------------------------------------------------------------------ #
+    st.markdown("#### 🗺️ Localisation")
+
+    acads_disponibles = sorted(
+        etab_idx[etab_idx.index.isin(uais_ens)][COL_ACAD].dropna().unique()
+    )
+    sel_acads = st.multiselect("Académie", acads_disponibles, placeholder="Toutes")
+
+    uais_after_acad = uais_ens & (
+        set(etab_idx[etab_idx[COL_ACAD].isin(sel_acads)].index) if sel_acads else uais_ens
+    )
+    deps_disponibles = sorted(
+        etab_idx[etab_idx.index.isin(uais_after_acad)][COL_DEP].dropna().unique()
+    )
+    sel_deps = st.multiselect("Département", deps_disponibles, placeholder="Tous")
+
+    uais_after_dep = uais_after_acad & (
+        set(etab_idx[etab_idx[COL_DEP].isin(sel_deps)].index) if sel_deps else uais_after_acad
+    )
+    communes_disponibles = sorted(
+        etab_idx[etab_idx.index.isin(uais_after_dep)][COL_COMMUNE].dropna().unique()
+    )
+    sel_communes = st.multiselect("Commune", communes_disponibles, placeholder="Toutes")
+
+    uais_geo = uais_after_dep & (
+        set(etab_idx[etab_idx[COL_COMMUNE].isin(sel_communes)].index) if sel_communes else uais_after_dep
+    )
+
+    # ------------------------------------------------------------------ #
+    # 3. Établissement — autocomplétion sur la sélection courante         #
+    # ------------------------------------------------------------------ #
+    st.markdown("#### 🏫 Établissement")
+    noms_disponibles = sorted(
+        etab_idx[etab_idx.index.isin(uais_geo)][COL_NOM].dropna().unique()
+    )
+    sel_nom = st.selectbox(
+        "Nom",
+        options=[None] + noms_disponibles,
+        format_func=lambda x: "" if x is None else x,
+        label_visibility="collapsed",
+        placeholder="Rechercher un établissement...",
+    )
+
+    uais_base = uais_geo & (
+        set(etab_idx[etab_idx[COL_NOM] == sel_nom].index) if sel_nom else uais_geo
+    )
 
 # ---------------------------------------------------------------------------
-# Filtrage final
+# Filtrage final — uais_base intègre déjà enseignements + géo + nom
 # ---------------------------------------------------------------------------
 uais = uais_base.copy()
-
-if sel_spes:
-    uais = {u for u in uais if set(sel_spes) <= spe_by_uai.get(u, set())}
-
-if sel_opts:
-    uais = {u for u in uais if set(sel_opts) <= opt_by_uai.get(u, set())}
 
 # ---------------------------------------------------------------------------
 # Résultats
@@ -250,7 +264,7 @@ if uais:
 
     with tab_liste:
         display = result[[COL_UAI, COL_NOM, COL_COMMUNE, COL_DEP, COL_ACAD]].copy()
-        display = display.merge(df_geo[["code UAI", "statut"]], left_on=COL_UAI, right_on="code UAI", how="left").drop(columns=[COL_UAI, "code UAI"])
+        display = display.merge(df_geo[["code UAI", "statut"]].drop_duplicates("code UAI"), left_on=COL_UAI, right_on="code UAI", how="left").drop(columns=[COL_UAI, "code UAI"])
         display.columns = ["Nom", "Commune", "Dép.", "Académie", "Statut"]
 
         col_list, col_detail = st.columns([1, 1])
@@ -359,7 +373,7 @@ if uais:
                 st.info("Sélectionnez un établissement dans la liste pour voir son détail.")
 
     with tab_carte:
-        geo_result = result.merge(df_geo, left_on=COL_UAI, right_on="code UAI", how="inner").drop_duplicates(COL_UAI)
+        geo_result = result.merge(df_geo.drop_duplicates("code UAI"), left_on=COL_UAI, right_on="code UAI", how="inner")
         n_sans_coords = len(result) - len(geo_result)
         if n_sans_coords > 0:
             st.caption(f"{n_sans_coords} établissement(s) sans coordonnées géographiques ne figurent pas sur la carte.")
