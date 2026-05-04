@@ -1,0 +1,44 @@
+[
+  {
+    "annee": 2025,
+    "champ": "ARTS",
+    "moyenne": 14.555,
+    "ecart-type": 1.96117
+  },
+  {
+    "annee": 2025,
+    "champ": "EPS",
+    "moyenne": 14.6405,
+    "ecart-type": 1.89741
+  },
+  {
+    "annee": 2025,
+    "champ": "FRANCAIS",
+    "moyenne": 12.3602,
+    "ecart-type": 3.22447
+  },
+  {
+    "annee": 2025,
+    "champ": "HISTOIRE-GEO",
+    "moyenne": 12.60584,
+    "ecart-type": 3.17359568
+  },
+  {
+    "annee": 2025,
+    "champ": "LANGUES VIVANTES",
+    "moyenne": 13.0314,
+    "ecart-type": 3.17393
+  },
+  {
+    "annee": 2025,
+    "champ": "MATHEMATIQUES",
+    "moyenne": 11.7792,
+    "ecart-type": 4.0464
+  },
+  {
+    "annee": 2025,
+    "champ": "SCIENCES-TECHNO-DP",
+    "moyenne": 12.9213,
+    "ecart-type": 2.80492
+  }
+]
